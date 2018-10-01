@@ -25,7 +25,6 @@ bool solve(int n) {
         return true;
     int x=blank_list[n].i;
     int y=blank_list[n].j;
-    //cout<<x<<" "<<y<<endl;
     for(int i=0;i<N;i++) {
         if(restrict[x][y][i] == 0) { // can fill
             int flag = 0;
@@ -39,12 +38,22 @@ bool solve(int n) {
                     break;
                 }
             }
-            
-            //for(int )
+            int lown = (int)sqrt(N);
+            if(flag == 0) {
+                for(int ni = 0;ni<lown;ni++)
+                    for(int nj = 0;nj<lown;nj++) {
+                        if(grid[(x/lown)*lown+ni][(y/lown)*lown+nj] == i+1) {
+                            flag = 1;
+                            
+                        }
+                    }
+            }
             if(flag == 0) {
                 grid[x][y] = i+1;
                 if(solve(n+1))
                     return true;
+                else
+                    grid[x][y] = 0;
             }
         }
     }
@@ -67,7 +76,6 @@ int main() {
             if(grid[i][j] == 0) {
                 point p(i,j);
                 blank_list.push_back(p);
-                cout<<i<<" "<<j<<endl;
                 blankN++;
             } else {
                 int num = grid[i][j] - 1;
@@ -78,19 +86,20 @@ int main() {
                 int n = sqrt(N);
                 for(int ti=0;ti<n;ti++)
                     for(int tj=0;tj<n;tj++)
-                        restrict[i/n+ti][j/n+tj][num] = 1;
+                        restrict[(i/n)*n+ti][(j/n)*n+tj][num] = 1;
             }
         }
     }
-    cout<<blankN<< " "<<blank_list.size()<<endl;
-    cout<<solve(0)<<endl;
-    cout<<N<<endl;
+    if(!solve(0)) {
+        cout<<"NO"<<endl;
+        return 0;
+    }
     for(int i=0;i<N;i++) {
 
-        for(int j=0;j<N;j++)
+        for(int j=0;j<N-1;j++)
             cout<<grid[i][j]<<" ";
+        cout<<grid[i][N-1];
         cout<<endl;
     }
-
     return 0;
 }
