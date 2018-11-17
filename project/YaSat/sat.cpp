@@ -2,6 +2,7 @@
 #include"parser.h"
 #include<vector>
 #include<list>
+#include<stack>
 #include<cstdlib>
 using namespace std;
 
@@ -21,10 +22,19 @@ public:
 };
 vector<vector<int> >clauses;
 vector<var> ans;
+stack<stack<int> > decision_stack;
 int maxVarIndex;
 int clauses_size;
 int bcp(int (*two_lit)[2] , vector<var>& var_list, int update) {
-    cout<<"bcp "<<update<<endl;
+    /*
+    if((update<=105 &&update>= 101 )||( update<=-101&& update >= -105)){
+        cout<<"bcp "<<update<<endl;
+        for(list<int>::iterator it = var_list[abs(update)-1].pw.begin(); it != var_list[abs(update)-1].pw.end();it++)
+            cout<<*it<<" ";
+        cout<<endl;
+        cout<<two_lit[165][0]<<" "<<two_lit[165][1]<<endl;
+    }
+    */
     if(update > 0) {
         var_list[update-1].val = 1;
         for(list<int>::iterator it = var_list[update-1].nw.begin(); it!= var_list[update-1].nw.end(); it++) {
@@ -99,16 +109,24 @@ int check_uni(int (*two_lit)[2], vector<var>& var_list) {
 
 int DPLL(int (*two_lit)[2], vector<var>& var_list) {
     int t;
+    stack<int> decision;
     while((t = check_uni(two_lit, var_list)) != -1) {
         //cout<<"imply"<<t<<endl;
-        if(var_list[abs(clauses[t][two_lit[t][0]])-1].val == 0) //not assign
+      
+        if(var_list[abs(clauses[t][two_lit[t][0]])-1].val == 0){ //not assign
+            decision_stack.top().push(abs(clauses[t][two_lit[t][0]]));
             bcp(two_lit, var_list, clauses[t][two_lit[t][0]]);
-        else
+        }
+        else {
+            decision_stack.top().push(abs(clauses[t][two_lit[t][1]]));
             bcp(two_lit, var_list, clauses[t][two_lit[t][1]]);
+        }
     }
     //   check sat
     int i;
     for(i =0;i<clauses_size; i++) {
+        if(two_lit[i][1] == -1)
+            continue;
         int a = clauses[i][two_lit[i][0]];
         int b = clauses[i][two_lit[i][1]];
         if(a * var_list[abs(a)-1].val <= 0 && b * var_list[abs(b)-1].val <= 0)
@@ -120,37 +138,56 @@ int DPLL(int (*two_lit)[2], vector<var>& var_list) {
     }
     //    check unsat
     for(i =0;i<clauses_size; i++) {
+        if(two_lit[i][1] == -1)
+            continue;
         int a = clauses[i][two_lit[i][0]];
         int b = clauses[i][two_lit[i][1]];
         if(a * var_list[abs(a)-1].val < 0 && b * var_list[abs(b)-1].val < 0){
-            //cout<<"back"<<endl;
+            //cout<<"back"<<i<<" "<<clauses[i][two_lit[i][0]]<<" "<<clauses[i][two_lit[i][1]]<<endl;
+            while(!decision_stack.top().empty()) {
+                var_list[decision_stack.top().top()-1].val = 0;
+                decision_stack.top().pop();
+            }
+            decision_stack.pop();
             return 0;
         }
     }
     //    make decision
-    vector<var> new_var_list(var_list);
     for(i = 0; i < maxVarIndex; i++) {
         if(var_list[i].val == 0)
             break;
     }
-    cout<<"d "<<i+1<<endl;
-    bcp(two_lit, new_var_list, i+1);
+    decision.push(i+1);
+    decision_stack.push(decision);
+    //cout<<"d "<<-(i+1)<<endl;
+    bcp(two_lit, var_list, -(i+1));
     //cout<<var_list[0].val<<" "<<new_var_list[0].val<<endl;
     //cout<<two_lit[5][0]<< " "<<two_lit[5][1]<<endl;
-    if(DPLL(two_lit, new_var_list))
+    if(DPLL(two_lit, var_list))
         return 1;
     else {
-        new_var_list = var_list;
-        bcp(two_lit, new_var_list, -(i+1));
-        cout<<"d "<<-(i+1)<<endl;
-        return DPLL(two_lit, new_var_list);
+        decision_stack.push(decision);
+        bcp(two_lit, var_list, (i+1));
+        //cout<<"d "<<(i+1)<<endl;
+        
+        if(DPLL(two_lit, var_list)) {
+            return 1;
+        } 
+        else {
+            while(!decision_stack.top().empty()) {
+                var_list[decision_stack.top().top()-1].val = 0;
+                decision_stack.top().pop();
+            }
+            decision_stack.pop();
+            return 0;
+        }
     }
 }
 int main(int argc, char** argv) {
     
     parse_DIMACS_CNF(clauses, maxVarIndex, argv[1]);
-    cout<<maxVarIndex<<endl;
-    cout<<clauses.size()<<endl;
+    //cout<<maxVarIndex<<endl;
+    //cout<<clauses.size()<<endl;
 /*    
     for(int i=0;i<static_cast<int>(clauses.size()); i++) {
         for(int j=0; j< static_cast<int>(clauses[i].size()); j++) {
@@ -171,7 +208,7 @@ int main(int argc, char** argv) {
 //////////////////////////////////////////////
 ///////////      init     ////////////////////
 //////////////////////////////////////////////
-    for(unsigned int i=0;i<clauses.size(); i++) {
+    for( int i=0;i<clauses.size(); i++) {
         if(clauses[i].size() >= 2) {
             if(clauses[i][0] > 0) {
                 var_list[clauses[i][0]-1].pw.push_back(i);
@@ -185,39 +222,50 @@ int main(int argc, char** argv) {
             }
             two_lit[i][0] = 0;
             two_lit[i][1] = 1;
+
         } else { 
             if(clauses[i][0] > 0) {
                 var_list[clauses[i][0]-1].pw.push_back(i);
                 var_list[clauses[i][0]-1].val = 1;
             } else {
                 var_list[-1*clauses[i][0]-1].nw.push_back(i);
-                var_list[clauses[i][0]-1].val = -1;
+                var_list[-1*clauses[i][0]-1].val = -1;
             }
             two_lit[i][0] = 0;
             two_lit[i][1] = -1;
         }    
     }
-
     for( int i=0;i<clauses_size; i++) {
         if(two_lit[i][1] == -1) {   //  uni-clause
+            //cout<<"uni "<<i<<endl;
+            //cout<<"bcp "<<clauses[i][0]<<endl;
             bcp(&two_lit[0], var_list, clauses[i][0]);
         }
     }
-
-    
-    //bcp(&two_lit[0], var_list, 5);
-    //bcp(&two_lit[0], var_list, 3);
+    /*
+    cout<<"main1 "<<two_lit[0][1]<<endl;
+    test1(&two_lit[0]);
+    cout<<"main2 "<<two_lit[0][1]<<endl;
+    */
+    //bcp(&two_lit[0], var_list, -102);
+    //bcp(&two_lit[0], var_list, -105);
+    //bcp(&two_lit[0], var_list, -103);
+    //bcp(&two_lit[0], var_list, -101);
+    //bcp(&two_lit[0], var_list, -4);
     cout<<"GO"<<endl;
+    stack<int> init;
+    decision_stack.push(init);
     int sat = DPLL(&two_lit[0], var_list); 
     cout<<sat<<endl;
     if(sat){
         for(int i=0;i<maxVarIndex;i++){
-            if((i+1)*ans[i].val > 0)
+            //if((i+1)*ans[i].val > 0)
                 cout<<(i+1)*ans[i].val<<" ";
         }
         cout<<endl;
     }
-    cout<<"two lit"<<endl;
+    
+    //cout<<"two lit"<<endl;
     /*
     for(int i=0;i<clauses_size;i++)
         cout<<two_lit[i][0]<< "  "<<two_lit[i][1]<<endl;
