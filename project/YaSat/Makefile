@@ -4,7 +4,7 @@
 #FLAGS=-Wall -Wold-style-cast -Wformat=2 -ansi -pedantic -ggdb3 -DDEBUG
 
 # Optimizing flags
-FLAGS=-Wall -Wold-style-cast -Wformat=2 -ansi -pedantic -O3
+FLAGS=-Wall -Wold-style-cast -Wformat=2 -ansi -pedantic -O3 -pg
 
 # List all the .o files you need to build here
 OBJS=parser.o sat.o

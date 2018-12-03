@@ -4,7 +4,6 @@
 #include<list>
 #include<stack>
 #include<cstdlib>
-#include<algorithm>
 using namespace std;
 
 class var {
@@ -26,24 +25,19 @@ vector<var> ans;
 stack<stack<int> > decision_stack;
 int maxVarIndex;
 int clauses_size;
-int bcp(vector<vector<int> > &two_lit, vector<var> &var_list, int update, vector<int> &scoreboard) {
+int bcp(int (*two_lit)[2] , vector<var>& var_list, int update) {
+    /*
+    if((update<=105 &&update>= 101 )||( update<=-101&& update >= -105)){
+        cout<<"bcp "<<update<<endl;
+        for(list<int>::iterator it = var_list[abs(update)-1].pw.begin(); it != var_list[abs(update)-1].pw.end();it++)
+            cout<<*it<<" ";
+        cout<<endl;
+        cout<<two_lit[165][0]<<" "<<two_lit[165][1]<<endl;
+    }
+    */
     if(update > 0) {
         var_list[update-1].val = 1;
-        for(list<int>::iterator it = var_list[update-1].pw.begin(); it != var_list[update-1].pw.end(); it++) {
-            int a = clauses[*it][two_lit[*it][0]];
-            int b = clauses[*it][two_lit[*it][1]];
-            if(a*var_list[abs(a)-1].val>0 && b*var_list[abs(b)-1].val>0) //already sat
-                continue;
-            for(int i=0; i<clauses[*it].size();i++) {
-                if(clauses[*it][i]>0) {
-                    scoreboard[2*(clauses[*it][i]-1)]--;
-                }
-                else {
-                    scoreboard[2*(-1*clauses[*it][i]-1)+1]--;
-                }
-            }
-        }
-        for(list<int>::iterator it = var_list[update-1].nw.begin(); it != var_list[update-1].nw.end(); it++) {
+        for(list<int>::iterator it = var_list[update-1].nw.begin(); it!= var_list[update-1].nw.end(); it++) {
             int i;
             if(two_lit[*it][1] == -1)
                 continue;
@@ -71,20 +65,6 @@ int bcp(vector<vector<int> > &two_lit, vector<var> &var_list, int update, vector
     } 
     else {  //update < 0
         var_list[abs(update)-1].val = -1;
-        for(list<int>::iterator it = var_list[abs(update)-1].nw.begin(); it != var_list[abs(update)-1].nw.end(); it++) {
-            int a = clauses[*it][two_lit[*it][0]];
-            int b = clauses[*it][two_lit[*it][1]];
-            if(a*var_list[abs(a)-1].val>0 && b*var_list[abs(b)-1].val>0) //already sat
-                continue;
-            for(int i=0; i<clauses[*it].size();i++) {
-                if(clauses[*it][i]>0) {
-                    scoreboard[2*(clauses[*it][i]-1)]--;
-                }
-                else {
-                    scoreboard[2*(-1*clauses[*it][i]-1)+1]--;
-                }
-            }
-        }
         for(list<int>::iterator it = var_list[abs(update)-1].pw.begin(); it!= var_list[abs(update)-1].pw.end(); it++) {
             int i;
             if(two_lit[*it][1] == -1)
@@ -114,23 +94,20 @@ int bcp(vector<vector<int> > &two_lit, vector<var> &var_list, int update, vector
     return 1;
 }
 
-int check_uni(vector<vector<int> > &two_lit, vector<var>& var_list) {
+int check_uni(int (*two_lit)[2], vector<var>& var_list) {
     for(int i=0; i<clauses_size; i++) {
         if(two_lit[i][1] == -1)
             continue;
         int a = clauses[i][two_lit[i][0]];
         int b = clauses[i][two_lit[i][1]];
-        int vala = var_list[abs(a)-1].val;
-        int valb = var_list[abs(b)-1].val;
-        //if((a * var_list[abs(a)-1].val < 0 && var_list[abs(b)-1].val == 0) ||
-        //   (b * var_list[abs(b)-1].val < 0 && var_list[abs(a)-1].val == 0)  )
-        if(a*vala<0 && valb == 0 || b*valb<0 && vala == 0)
+        if((a * var_list[abs(a)-1].val < 0 && var_list[abs(b)-1].val == 0) ||
+           (b * var_list[abs(b)-1].val < 0 && var_list[abs(a)-1].val == 0)  )
             return i;
     }
     return -1;
 }
 
-int DPLL(vector<vector<int> > &two_lit, vector<var> &var_list, vector<int> scoreboard) {
+int DPLL(int (*two_lit)[2], vector<var>& var_list) {
     int t;
     stack<int> decision;
     while((t = check_uni(two_lit, var_list)) != -1) {
@@ -138,45 +115,29 @@ int DPLL(vector<vector<int> > &two_lit, vector<var> &var_list, vector<int> score
       
         if(var_list[abs(clauses[t][two_lit[t][0]])-1].val == 0){ //not assign
             decision_stack.top().push(abs(clauses[t][two_lit[t][0]]));
-            bcp(two_lit, var_list, clauses[t][two_lit[t][0]], scoreboard);
+            bcp(two_lit, var_list, clauses[t][two_lit[t][0]]);
         }
         else {
             decision_stack.top().push(abs(clauses[t][two_lit[t][1]]));
-            bcp(two_lit, var_list, clauses[t][two_lit[t][1]], scoreboard);
+            bcp(two_lit, var_list, clauses[t][two_lit[t][1]]);
         }
     }
     //   check sat
     int i;
-    int flag_sat = 1;
-    for(i=0;i<clauses_size; i++) {
+    for(i =0;i<clauses_size; i++) {
         if(two_lit[i][1] == -1)
             continue;
         int a = clauses[i][two_lit[i][0]];
         int b = clauses[i][two_lit[i][1]];
-        int vala = var_list[abs(a)-1].val;
-        int valb = var_list[abs(b)-1].val;
-        //if(a * var_list[abs(a)-1].val <= 0 && b * var_list[abs(b)-1].val <= 0) {
-        if(a * vala <= 0 && b * valb <= 0) {    
-            flag_sat = 0;
-            if(vala != 0 && valb != 0) {
-                while(!decision_stack.top().empty()) {
-                    var_list[decision_stack.top().top()-1].val = 0;
-                    decision_stack.top().pop();
-                }
-                decision_stack.pop();
-                return 0;
-            }
-        }
-            //break;
+        if(a * var_list[abs(a)-1].val <= 0 && b * var_list[abs(b)-1].val <= 0)
+            break;
     }
-    //if(i == clauses_size) { //SAT
-    if(flag_sat == 1) {
+    if(i == clauses_size) { //SAT
         ans = var_list;
         return 1;
     }
     //    check unsat
-    /*
-    for(i=0;i<clauses_size; i++) {
+    for(i =0;i<clauses_size; i++) {
         if(two_lit[i][1] == -1)
             continue;
         int a = clauses[i][two_lit[i][0]];
@@ -191,53 +152,25 @@ int DPLL(vector<vector<int> > &two_lit, vector<var> &var_list, vector<int> score
             return 0;
         }
     }
-    */
     //    make decision
-    /*for(i = 0; i < maxVarIndex; i++) {
+    for(i = 0; i < maxVarIndex; i++) {
         if(var_list[i].val == 0)
             break;
-    }*/
-    vector<int> dlis_score(scoreboard);
-    for(int i=0;i<maxVarIndex;i++) {
-        if(var_list[i].val != 0) {
-            dlis_score[i*2] = 0;
-            dlis_score[i*2+1] = 0;
-        }
     }
-    vector<int>::iterator max_ele;
-    max_ele = max_element(dlis_score.begin(), dlis_score.end());
-    int max_index = distance(dlis_score.begin(), max_ele);
-    while(var_list[max_index/2].val != 0) {
-        cout<<"error"<<endl;
-    }
-    decision.push(max_index/2+1);
+    decision.push(i+1);
     decision_stack.push(decision);
-    vector<int> new_scoreboard(scoreboard);
-    if(max_index % 2 == 0) {
-        bcp(two_lit, var_list, (max_index/2+1), new_scoreboard);
-        //cout<<"dpll "<< max_index/2+1<<endl;
-    }
-    else {
-        bcp(two_lit, var_list, -(max_index/2+1), new_scoreboard);
-        //cout<<"dpll "<<-(max_index/2+1)<<endl;
-    }
-    
-    if(DPLL(two_lit, var_list, new_scoreboard))
+    //cout<<"d "<<-(i+1)<<endl;
+    bcp(two_lit, var_list, -(i+1));
+    //cout<<var_list[0].val<<" "<<new_var_list[0].val<<endl;
+    //cout<<two_lit[5][0]<< " "<<two_lit[5][1]<<endl;
+    if(DPLL(two_lit, var_list))
         return 1;
     else {
         decision_stack.push(decision);
-        new_scoreboard = scoreboard;
-        if(max_index % 2 == 0) {
-            bcp(two_lit, var_list, -(max_index/2+1), new_scoreboard);
-          //  cout<<"dpll "<<-(max_index/2+1)<<endl;
-        }
-        else {
-            bcp(two_lit, var_list, (max_index/2+1), new_scoreboard);
-            //cout<<"dpll "<<(max_index/2+1)<<endl;
-        }
+        bcp(two_lit, var_list, (i+1));
         //cout<<"d "<<(i+1)<<endl;
         
-        if(DPLL(two_lit, var_list, new_scoreboard)) {
+        if(DPLL(two_lit, var_list)) {
             return 1;
         } 
         else {
@@ -253,18 +186,22 @@ int DPLL(vector<vector<int> > &two_lit, vector<var> &var_list, vector<int> score
 int main(int argc, char** argv) {
     
     parse_DIMACS_CNF(clauses, maxVarIndex, argv[1]);
-    
-
-
+    //cout<<maxVarIndex<<endl;
+    //cout<<clauses.size()<<endl;
+/*    
+    for(int i=0;i<static_cast<int>(clauses.size()); i++) {
+        for(int j=0; j< static_cast<int>(clauses[i].size()); j++) {
+            cout<<clauses[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+*/
+      
     var emptyvar;
     emptyvar.val = 0;
     vector<var> var_list(maxVarIndex, emptyvar);
     clauses_size = clauses.size();
-    vector<int> init_two(2, 0);
-    vector<vector<int> > two_lit(clauses_size, init_two);
-    vector<int> scoreboard(maxVarIndex*2, 0);
-    
-    //int two_lit[clauses.size()][2];
+    int two_lit[clauses.size()][2];
     //vector<int[2]> tmp_two_lit(clauses.size(), {-1, -1});
     //two_lit = tmp_two_lit;
     //var_list[0].nw.push_back(0);
@@ -296,27 +233,29 @@ int main(int argc, char** argv) {
             }
             two_lit[i][0] = 0;
             two_lit[i][1] = -1;
-        } 
-        for(int j=0;j<clauses[i].size();j++) {
-            if(clauses[i][j] > 0) {
-                scoreboard[(clauses[i][j]-1)*2]++;
-            }
-            else {
-                scoreboard[(-1*clauses[i][j]-1)*2+1]++;
-            }
-        }
+        }    
     }
-    for(int i=0;i<clauses_size;i++) {
+    for( int i=0;i<clauses_size; i++) {
         if(two_lit[i][1] == -1) {   //  uni-clause
             //cout<<"uni "<<i<<endl;
             //cout<<"bcp "<<clauses[i][0]<<endl;
-            bcp(two_lit, var_list, clauses[i][0], scoreboard);
+            bcp(&two_lit[0], var_list, clauses[i][0]);
         }
     }
+    /*
+    cout<<"main1 "<<two_lit[0][1]<<endl;
+    test1(&two_lit[0]);
+    cout<<"main2 "<<two_lit[0][1]<<endl;
+    */
+    //bcp(&two_lit[0], var_list, -102);
+    //bcp(&two_lit[0], var_list, -105);
+    //bcp(&two_lit[0], var_list, -103);
+    //bcp(&two_lit[0], var_list, -101);
+    //bcp(&two_lit[0], var_list, -4);
     //cout<<"GO"<<endl;
     stack<int> init;
     decision_stack.push(init);
-    int sat = DPLL(two_lit, var_list, scoreboard); 
+    int sat = DPLL(&two_lit[0], var_list); 
     if(sat) {
         cout<<"s SATISFIABLE"<<endl;
     }
