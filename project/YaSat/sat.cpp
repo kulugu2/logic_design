@@ -136,8 +136,8 @@ bool abs_cmp(int i, int j) {
     return (abs(i)<abs(j));
 }
 vector<int> resolve(vector<int> conflict_clause, int clause_num, int p) {
-    cout<<"resolve"<<endl;
-    cout<<clause_num<<endl;
+    //cout<<"resolve"<<endl;
+    //cout<<clause_num<<endl;
     vector<int> tmp(clauses[clause_num]);
     sort(conflict_clause.begin(), conflict_clause.end(), abs_cmp);
     sort(tmp.begin(), tmp.end(), abs_cmp);
@@ -178,23 +178,23 @@ vector<int> resolve(vector<int> conflict_clause, int clause_num, int p) {
             result.push_back(*it1);
         it1++;
     }
-    for(int i=0;i<result.size();i++) {
-        cout<<result[i]<<" ";
-    }
-    cout<<endl;
+    //for(int i=0;i<result.size();i++) {
+    //    cout<<result[i]<<" ";
+    //}
+    //cout<<endl;
     return result;
     
     
 }
 vector<int> conflict_learning(stack<int> decision, int clause_num) {
     vector<int> dv;
-    cout<<"c1"<<endl;
+    //cout<<"c1"<<endl;
     while(!decision.empty()) {
         dv.push_back(decision.top());
-        cout<<decision.top()<<" ";
+        //cout<<decision.top()<<" ";
         decision.pop();
     }
-    cout<<endl;
+    //cout<<endl;
     vector<int> conflict_clause(clauses[clause_num]);
     while(1) {
 
@@ -214,10 +214,10 @@ vector<int> conflict_learning(stack<int> decision, int clause_num) {
             break;
         conflict_clause = resolve(conflict_clause, decision_vector[most_recent-1][1], most_recent);
     }
-    for(int i=0;i<conflict_clause.size();i++) {
-        cout<<conflict_clause[i]<<" ";
-    }
-    cout<<endl;
+    //for(int i=0;i<conflict_clause.size();i++) {
+    //    cout<<conflict_clause[i]<<" ";
+    //}
+    //cout<<endl;
     return conflict_clause;
 
 }
@@ -238,10 +238,16 @@ void add_clauses(vector<int> learned, vector<vector<int> > &two_lit, vector<var>
         }
         else {
             two0 = watch_literal;
-            if(two0 != 0)
-                two1 = 0;
-            else
-                two1 = 1;
+            int second_big = 0;
+            for(int i=0;i<learned.size();i++) {
+                if(i == two0)
+                    continue;
+                else if (decision_vector[abs(learned[i])-1][0] >= second_big) {
+                    second_big = decision_vector[abs(learned[i])-1][0];
+                    two1 = i;
+                }
+                    
+            }
             if(clauses[clauses_size-1][two0] > 0) {
                 var_list[abs(clauses[clauses_size-1][two0])-1].pw.push_back(clauses_size-1);
             }
@@ -277,14 +283,14 @@ label_bcp:
             decision_vector[abs(clauses[t][two_lit[t][0]])-1][1] = t;
 
             bcp(two_lit, var_list, clauses[t][two_lit[t][0]], scoreboard);
-            cout<<"bcp "<<clauses[t][two_lit[t][0]]<<" "<<t<<" level "<<level<<endl;
+            //cout<<"bcp "<<clauses[t][two_lit[t][0]]<<" "<<t<<" level "<<level<<endl;
         }
         else {
             decision_stack.top().push(abs(clauses[t][two_lit[t][1]]));
             decision_vector[abs(clauses[t][two_lit[t][1]])-1][0] = level;
             decision_vector[abs(clauses[t][two_lit[t][1]])-1][1] = t;
             bcp(two_lit, var_list, clauses[t][two_lit[t][1]], scoreboard);
-            cout<<"bcp "<<clauses[t][two_lit[t][1]]<<" "<<t<<" level "<<level<<endl;
+            //cout<<"bcp "<<clauses[t][two_lit[t][1]]<<" "<<t<<" level "<<level<<endl;
         }
     }
     //   check sat
@@ -306,7 +312,7 @@ label_bcp:
         if(a * vala <= 0 && b * valb <= 0) {    //check unsat
             flag_sat = 0;
             if(vala != 0 && valb != 0) {
-                cout<<"conflict "<<i<<endl;
+                //cout<<"conflict "<<i<<endl;
                 vector<int> learned(conflict_learning(decision_stack.top(), i));
                 int watch_lit;
                 int second_big = 0;
@@ -318,15 +324,15 @@ label_bcp:
                 }
                 add_clauses(learned, two_lit, var_list, watch_lit);
 
-                cout<<"push"<<endl;
+                //cout<<"push"<<endl;
                 while(!decision_stack.top().empty()) {
                     var_list[decision_stack.top().top()-1].val = 0;
-                    cout<<"pop "<<decision_stack.top().top()<<endl;
+                    //cout<<"pop "<<decision_stack.top().top()<<endl;
                     decision_stack.top().pop();
                 }
                 decision_stack.pop();
                 return_level = second_big;
-                cout<<"return c"<<endl;
+                //cout<<"return c"<<endl;
                 
                 return 0;
             }
@@ -378,7 +384,7 @@ label_bcp:
     stack<int> decision;
     decision.push(max_index/2+1);
     decision_stack.push(decision);
-    cout<<"push "<<max_index/2+1<<endl;
+    //cout<<"push "<<max_index/2+1<<endl;
     decision_vector[max_index/2][0] = level+1;
     decision_vector[max_index/2][1] = -1;
     static int old_clauses_size; 
@@ -387,11 +393,11 @@ label_bcp:
     new_scoreboard = scoreboard;
     if(max_index % 2 == 0) {
         bcp(two_lit, var_list, (max_index/2+1), new_scoreboard);
-        cout<<"dpll "<< max_index/2+1<<endl;
+        //cout<<"dpll "<< max_index/2+1<<endl;
     }
     else {
         bcp(two_lit, var_list, -(max_index/2+1), new_scoreboard);
-        cout<<"dpll "<<-(max_index/2+1)<<endl;
+        //cout<<"dpll "<<-(max_index/2+1)<<endl;
     }
     
     if(DPLL(two_lit, var_list, new_scoreboard, level+1))
@@ -400,10 +406,11 @@ label_bcp:
         if(return_level != level) {
             while(!decision_stack.top().empty()) {
                 var_list[decision_stack.top().top()-1].val = 0;
+                //cout<<"pop "<<decision_stack.top().top()<<endl;
                 decision_stack.top().pop();
             }
             decision_stack.pop();
-            cout<<"return non_cho"<<endl;
+            //cout<<"return non_cho "<<return_level<<endl;
             return 0;
         }
         else {
@@ -418,10 +425,10 @@ label_bcp:
                         }
                     }
                 }
-                cout<<"goto"<<endl;
+                //cout<<"goto"<<endl;
                 goto label_bcp;
             }
-            cout<<"learn nothing"<<endl;
+            //cout<<"learn nothing"<<endl;
         }
         stack<int> decision;
         decision.push(max_index/2+1);
@@ -436,7 +443,7 @@ label_bcp:
             //cout<<"dpll "<<(max_index/2+1)<<endl;
         }
         //cout<<"d "<<(i+1)<<endl;
-        
+        //cout<<"pass"<<endl;
         if(DPLL(two_lit, var_list, new_scoreboard, level+1)) {
             return 1;
         } 
@@ -444,10 +451,11 @@ label_bcp:
             if(return_level != level) {
                 while(!decision_stack.top().empty()) {
                     var_list[decision_stack.top().top()-1].val = 0;
+                    //cout<<"pop "<<decision_stack.top().top()<<endl;
                     decision_stack.top().pop();
                 }
                 decision_stack.pop();
-                cout<<"return non_cho"<<endl;
+                //cout<<"return non_cho "<<return_level<<endl;
                 return 0;
             }
             else {
@@ -462,7 +470,7 @@ label_bcp:
                             }
                         }
                     }
-                    cout<<"goto"<<endl;
+                    //cout<<"goto"<<endl;
                     goto label_bcp;
                 }
             }
