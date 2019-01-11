@@ -29,6 +29,7 @@ int maxVarIndex;
 int clauses_size;
 int input_clauses_size;
 int return_level;
+int conflict_num;
 int bcp(vector<vector<int> > &two_lit, vector<var> &var_list, int update, vector<int> &scoreboard) {
     if(update > 0) {
         var_list[update-1].val = 1;
@@ -333,7 +334,13 @@ label_bcp:
                 decision_stack.pop();
                 return_level = second_big;
                 //cout<<"return c"<<endl;
-                
+                conflict_num++;
+                if(conflict_num >= 500) {
+                    double x = (double) rand() / (RAND_MAX + 1.0);
+                    if(x>=0.8)
+                        return_level = -5;
+                    //cout<<"re"<<endl;
+                }
                 return 0;
             }
         }
@@ -404,13 +411,19 @@ label_bcp:
         return 1;
     else {
         if(return_level != level) {
+            if(level == 0)
+                return 0;
+            //cout<<"bb"<<endl;
             while(!decision_stack.top().empty()) {
                 var_list[decision_stack.top().top()-1].val = 0;
                 //cout<<"pop "<<decision_stack.top().top()<<endl;
                 decision_stack.top().pop();
             }
+            //cout<<"aaa"<<endl;
             decision_stack.pop();
             //cout<<"return non_cho "<<return_level<<endl;
+            //if(return_level == -5)
+            //    cout<<"current_level "<<level<<endl;
             return 0;
         }
         else {
@@ -449,12 +462,17 @@ label_bcp:
         } 
         else {
             if(return_level != level) {
+                if(level == 0)
+                    return 0;
                 while(!decision_stack.top().empty()) {
                     var_list[decision_stack.top().top()-1].val = 0;
                     //cout<<"pop "<<decision_stack.top().top()<<endl;
                     decision_stack.top().pop();
                 }
+                //cout<<"a"<<endl;
                 decision_stack.pop();
+                //if(return_level == -5)
+                    //cout<<"current_level "<<level<<endl;
                 //cout<<"return non_cho "<<return_level<<endl;
                 return 0;
             }
@@ -487,9 +505,12 @@ int main(int argc, char** argv) {
 
     var emptyvar;
     emptyvar.val = 0;
-    vector<var> var_list(maxVarIndex, emptyvar);
+    //vector<var> var_list(maxVarIndex, emptyvar);
     clauses_size = clauses.size();
     input_clauses_size = clauses_size;
+    while(1) {
+    conflict_num = 0;
+    vector<var> var_list(maxVarIndex, emptyvar);
     vector<int> init_two(2, 0);
     vector<vector<int> > two_lit(clauses_size, init_two);
     for(int i=0;i<maxVarIndex;i++) {
@@ -552,14 +573,21 @@ int main(int argc, char** argv) {
             bcp(two_lit, var_list, clauses[i][0], scoreboard);
         }
     }
+    //while(!decision_stack.empty())
+    //    decision_stack.pop();
     //cout<<"GO"<<endl;
-    cout<<clauses_size<<endl;
+    //cout<<clauses_size<<endl;
     int sat = DPLL(two_lit, var_list, scoreboard, 0); 
     if(sat) {
         cout<<"s SATISFIABLE"<<endl;
     }
     else {
+        if(return_level == -5) {
+            //cout<<"restart"<<endl;
+            continue;
+        }
         cout<<"s UNSATISFIABLE"<<endl;
+        break;
     }
     if(sat){
         cout<<"v ";
@@ -570,9 +598,11 @@ int main(int argc, char** argv) {
                 cout<<(i+1)*1<<" ";
         }
         cout<<"0"<<endl;
+        break;
     }
     
     cout<<clauses_size<<endl;
+    }
     //cout<<"two lit"<<endl;
     /*
     for(int i=0;i<clauses_size;i++)
