@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     enc_circ.open(argv[1], ios::in);
     if(!enc_circ) {
         cout<<"read file failed"<<endl;
-        return 1;
+            return 1;
     }
     string buffer;
 
@@ -301,7 +301,6 @@ int main(int argc, char** argv) {
             
         }
     }
-    cout<<"aa"<<endl;
     //////////////////////////////////////////////////////
     vector<pair<int, int> > reach_out;
     for(int i=0;i<gate_count;i++) {
@@ -337,7 +336,6 @@ int main(int argc, char** argv) {
             
         }
     }
-    cout<<"bb"<<endl;
     //////////////////////////////////////////////////////
     //for(int i=0;i<score.size();i++) {
     //    score[i].second += pass_through[score[i].first].second;
@@ -347,7 +345,6 @@ int main(int argc, char** argv) {
         if(gate_list[k].type==INPUT && gate_list[k].key_input == 1)
             break;
     }
-    cout<<k<<endl;
     int key_start_id = k;
     double avg_score = 0;
     double avg_minus_score = 0;
@@ -357,10 +354,7 @@ int main(int argc, char** argv) {
     double std_minus_score = 0;
     double std_reach_out = 0;
     double std_pass_through = 0;
-    cout<<"cc"<<endl;
-    cout<<key_start_id<<" "<<key.size()<<endl;
     for(int i=key_start_id; i<key_start_id+key.size(); i++) {
-        cout<<i<<endl;
         avg_score += score[i].second;
         avg_minus_score += minus_score[i].second;
         avg_reach_out += reach_out[i].second;
@@ -371,7 +365,6 @@ int main(int argc, char** argv) {
         std_reach_out += pow(reach_out[i].second,2.0);
         std_pass_through += pow(pass_through[i].second,2.0);
     }
-    cout<<"dd"<<endl;
     avg_score /= key.size();
     avg_minus_score /= key.size();
     avg_reach_out /= key.size();
@@ -381,13 +374,11 @@ int main(int argc, char** argv) {
     std_reach_out = sqrt((std_reach_out/key.size() - pow(avg_reach_out,2)) / key.size());
     std_pass_through = sqrt((std_pass_through/key.size() - pow(avg_pass_through,2)) / key.size());
     vector<pair<int, double> >total_score;
-    cout<<"cc"<<endl;
     for(int i=key_start_id; i<key_start_id+key.size(); i++) {
         total_score.push_back(make_pair(i, (score[i].second-avg_score)/std_score
                     +3*(reach_out[i].second-avg_reach_out)/std_reach_out + (pass_through[i].second-avg_pass_through)/std_pass_through));
     }
 
-    cout<<"dd"<<endl;
     int key_size = score.size();
     sort(total_score.begin(), total_score.end(), sortbysecb);
     sort(score.begin(), score.end(), sortbysec);
@@ -398,9 +389,8 @@ int main(int argc, char** argv) {
     //    cout<<score[i].first<<" "<<score[i].second<<" "<<minus_score[i].first<<" "<<minus_score[i].second<<endl;
     //}
 
-    cout<<"dd"<<endl;
     int N = atoi(argv[5]);
-    cout<<N<<endl;
+    //cout<<N<<endl;
     string outputkey(key);
     int xsize = key.size() * N / 100;
     for(int i=0;i<xsize; i++) {
