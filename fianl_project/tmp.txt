@@ -1,0 +1,6 @@
+inputs=256 keys=1682 outputs=245 gates=7938
+iteration: 1; vars: 42328; clauses: 18119; decisions: 7454
+iteration: 2; vars: 55882; clauses: 39219; decisions: 24024
+iteration: 3; vars: 69436; clauses: 15767; decisions: 27940
+iteration: 4; vars: 82990; clauses: 38909; decisions: 31698
+iteration: 5; vars: 96544; clauses: 61829; decisions: 38904

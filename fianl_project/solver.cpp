@@ -6,7 +6,8 @@
 #include<queue>
 #include<fstream>
 #include<algorithm>
-
+#include<sstream>
+#include<cmath>
 using namespace std;
 
 enum gate_type{INPUT, OUTPUT, BUF, NOT, OR, NOR, AND, NAND, XOR, XNOR};
@@ -17,6 +18,7 @@ public:
     gate_type type;
     int key_input;
     int mutabl; //-1: others, 0: non_mutable, 1:mutable, 2:input, 3:key_input
+    int represent;
     gate() {
         
     }
@@ -28,6 +30,7 @@ public:
             key_input = 1;
         else
             key_input = 0;
+        int represent = -1;
     }
 };
 string key;
@@ -49,7 +52,13 @@ void create_gate(gate g) {
     gate_count++;
     return;
 }
+bool sortbysec(const pair<int, int> &a, const pair<int ,int> &b) {
+    return (a.second>b.second);
+}
 
+bool sortbysecb(const pair<int, double> &a, const pair<int ,double> &b) {
+    return (a.second>b.second);
+}
 int main(int argc, char** argv) {
     
     fstream enc_circ;
@@ -169,8 +178,8 @@ int main(int argc, char** argv) {
     for(int i=0; i<gate_count;i++) {
         if(gate_list[i].type != INPUT)
              continue;
-        if(gate_list[i].key_input ==1   ) {
-            cout<<i<<endl;
+        if(gate_list[i].key_input == 0) {
+            //cout<<i<<endl;
             int *color = new int[gate_count]();
             queue<int> q;
             color[i] = 1;
@@ -178,26 +187,233 @@ int main(int argc, char** argv) {
             gate_list[i].mutabl = 2;
             while(!q.empty()) {
                 int u = q.front();
-                cout<<gate_list[u].name<<" ";
                 for(list<int>::iterator it = adjacency_list[u].begin();
                         it != adjacency_list[u].end(); it++) {
                     if(color[*it] == 0) {
-                        color[*it] = 1;
-                        q.push(*it);
-
+                        if(gate_list[*it].type == BUF || gate_list[*it].type == NOT) {
+                            color[*it] = 1;
+                            q.push(*it);
+                            gate_list[*it].mutabl = 2;
+                        }
+                        else {
+                            gate_list[*it].mutabl = 1;
+                        }
                     }
                 }
-                if(gate_list[u].type == OUTPUT)
-                    cout<<"out "<<endl;
                 color[u] = 2;
                 q.pop();
             }
-            cout<<endl;
+            //cout<<endl;
             delete(color);
             //-1: others, 0: non_mutable, 1:mutable, 2:input, 3:key_input
             
         }
     }
+    //////////////       find nonmutable  ///////////////
+    for(int i=0; i<gate_count;i++) {
+        if(gate_list[i].type != INPUT)
+             continue;
+        if(gate_list[i].key_input == 1   ) {
+            //cout<<i<<endl;
+            int *color = new int[gate_count]();
+            queue<int> q;
+            color[i] = 1;
+            q.push(i);
+            gate_list[i].mutabl = 3;
+            while(!q.empty()) {
+                int u = q.front();
+                for(list<int>::iterator it = adjacency_list[u].begin();
+                        it != adjacency_list[u].end(); it++) {
+                    if(color[*it] == 0) {
+                        if(gate_list[*it].type == BUF || gate_list[*it].type == NOT) {
+                            color[*it] = 1;
+                            q.push(*it);
+                            gate_list[*it].mutabl = 3;
+                        }
+                        else {
+                            gate_list[*it].mutabl = 0;
+                            gate_list[*it].represent = i;
+                        }
+                    }
+                }
+                color[u] = 2;
+                q.pop();
+            }
+            //cout<<endl;
+            delete(color);
+            //-1: others, 0: non_mutable, 1:mutable, 2:input, 3:key_input
+            
+        }
+    }
+    
+    //////////////   count ////////////////////
+    vector<pair<int, int> > score;
+    vector<pair<int, int> > minus_score;
+    vector<pair<int, int> > pass_through;
+
+    for(int i=0;i<gate_count;i++) {
+        score.push_back(make_pair(i, 0));
+    }
+    for(int i=0;i<gate_count;i++) {
+        minus_score.push_back(make_pair(i, 0));
+    }
+    for(int i=0;i<gate_count;i++) {
+        pass_through.push_back(make_pair(i, 0));
+    }
+
+    for(int i=0; i<gate_count; i++) {
+        if(gate_list[i].type == INPUT && gate_list[i].key_input == 1) {
+            int pos_s = 0;
+            int neg_s = 0;
+            int *color = new int[gate_count]();
+            queue<int> q;
+            color[i] = 1;
+            q.push(i);
+            while(!q.empty()) {
+                int u = q.front();
+                for(list<int>::iterator it = adjacency_list[u].begin();
+                        it != adjacency_list[u].end(); it++) {
+                    if(color[*it] == 0) {
+                        if(gate_list[*it].mutabl == 1) {
+                            minus_score[i].second++;
+                            color[*it] = 2;
+                        }
+                        else if(gate_list[*it].mutabl == 0) {
+                            score[i].second++;
+                            color[*it] = 1;
+                            q.push(*it);
+                            pass_through[gate_list[*it].represent].second++;
+                        }
+                        else {
+                            color[*it] = 1;
+                            q.push(*it);
+                        }
+                    }
+          
+                }
+                color[u] = 2;
+                q.pop();
+            }
+            
+            //cout<<endl;
+            delete(color);
+            //-1: others, 0: non_mutable, 1:mutable, 2:input, 3:key_input
+            
+        }
+    }
+    cout<<"aa"<<endl;
+    //////////////////////////////////////////////////////
+    vector<pair<int, int> > reach_out;
+    for(int i=0;i<gate_count;i++) {
+        reach_out.push_back(make_pair(i, 0));
+    }
+    for(int i=0; i<gate_count; i++) {
+        if(gate_list[i].type == INPUT && gate_list[i].key_input == 1) {
+            int out = 0;
+            int *color = new int[gate_count]();
+            queue<int> q;
+            color[i] = 1;
+            q.push(i);
+            while(!q.empty()) {
+                int u = q.front();
+                if(gate_list[u].type == OUTPUT)
+                    reach_out[i].second++;
+                for(list<int>::iterator it = adjacency_list[u].begin();
+                        it != adjacency_list[u].end(); it++) {
+                    if(color[*it] == 0) {
+                        
+                        color[*it] = 1;
+                        q.push(*it);
+                    }
+          
+                }
+                color[u] = 2;
+                q.pop();
+            }
+            
+            //cout<<endl;
+            delete(color);
+            //-1: others, 0: non_mutable, 1:mutable, 2:input, 3:key_input
+            
+        }
+    }
+    cout<<"bb"<<endl;
+    //////////////////////////////////////////////////////
+    //for(int i=0;i<score.size();i++) {
+    //    score[i].second += pass_through[score[i].first].second;
+    //}
+    int k;
+    for( k=0;k<gate_count;k++) {
+        if(gate_list[k].type==INPUT && gate_list[k].key_input == 1)
+            break;
+    }
+    cout<<k<<endl;
+    int key_start_id = k;
+    double avg_score = 0;
+    double avg_minus_score = 0;
+    double avg_reach_out = 0;
+    double avg_pass_through = 0;
+    double std_score = 0;
+    double std_minus_score = 0;
+    double std_reach_out = 0;
+    double std_pass_through = 0;
+    cout<<"cc"<<endl;
+    cout<<key_start_id<<" "<<key.size()<<endl;
+    for(int i=key_start_id; i<key_start_id+key.size(); i++) {
+        cout<<i<<endl;
+        avg_score += score[i].second;
+        avg_minus_score += minus_score[i].second;
+        avg_reach_out += reach_out[i].second;
+        avg_pass_through += pass_through[i].second;
+        
+        std_score += pow(score[i].second,2.0);
+        std_minus_score += pow(minus_score[i].second,2.0);
+        std_reach_out += pow(reach_out[i].second,2.0);
+        std_pass_through += pow(pass_through[i].second,2.0);
+    }
+    cout<<"dd"<<endl;
+    avg_score /= key.size();
+    avg_minus_score /= key.size();
+    avg_reach_out /= key.size();
+    avg_pass_through /= key.size();
+    std_score = sqrt((std_score/key.size() - pow(avg_score,2)) / key.size());
+    std_minus_score = sqrt((std_minus_score/key.size() - pow(avg_minus_score,2)) / key.size());
+    std_reach_out = sqrt((std_reach_out/key.size() - pow(avg_reach_out,2)) / key.size());
+    std_pass_through = sqrt((std_pass_through/key.size() - pow(avg_pass_through,2)) / key.size());
+    vector<pair<int, double> >total_score;
+    cout<<"cc"<<endl;
+    for(int i=key_start_id; i<key_start_id+key.size(); i++) {
+        total_score.push_back(make_pair(i, (score[i].second-avg_score)/std_score
+                    +3*(reach_out[i].second-avg_reach_out)/std_reach_out + (pass_through[i].second-avg_pass_through)/std_pass_through));
+    }
+
+    cout<<"dd"<<endl;
+    int key_size = score.size();
+    sort(total_score.begin(), total_score.end(), sortbysecb);
+    sort(score.begin(), score.end(), sortbysec);
+    sort(minus_score.begin(), minus_score.end(), sortbysec);
+    sort(reach_out.begin(), reach_out.end(), sortbysec);
+    sort(pass_through.begin(), pass_through.end(), sortbysec);
+    //for(int i=0;i<score.size();i++) {
+    //    cout<<score[i].first<<" "<<score[i].second<<" "<<minus_score[i].first<<" "<<minus_score[i].second<<endl;
+    //}
+
+    cout<<"dd"<<endl;
+    int N = atoi(argv[5]);
+    cout<<N<<endl;
+    string outputkey(key);
+    int xsize = key.size() * N / 100;
+    for(int i=0;i<xsize; i++) {
+        string tmp(gate_list[total_score[i].first].name.begin()+8, gate_list[total_score[i].first].name.end());
+        int id = stoi(tmp);
+        //cout<<id<<endl;
+        outputkey[id] = 'x';
+    }
+    fstream outf;
+    outf.open(argv[3], ios::out);
+    outf<<outputkey<<endl;
+    outf.close();
+    cout<<outputkey<<endl;
     /*
     for(int i=0;i<gate_count;i++) {
         cout<<gate_list[i].name<<" "<<gate_list[i].type<<" ";
